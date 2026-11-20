@@ -1,6 +1,3 @@
-
-
--- SERVICES
 local CoreGui=game:GetService("CoreGui")
 local Players=game:GetService("Players")
 local UserInputService=game:GetService("UserInputService")
@@ -25,7 +22,6 @@ if PlayerGui:FindFirstChild(guiName) then
     PlayerGui[guiName]:Destroy()
 end
 
--- TẠO GUI
 local screenGui=Instance.new("ScreenGui")
 screenGui.Name=guiName
 screenGui.ResetOnSpawn=false
@@ -38,7 +34,6 @@ if not success or not screenGui.Parent then
     screenGui.Parent=PlayerGui
 end
 
--- KHUNG CHÍNH
 local mainFrame=Instance.new("Frame")
 mainFrame.Size=UDim2.new(0,115,0,30)
 mainFrame.Position=UDim2.new(0.5,-57,0.4,0)
@@ -51,7 +46,6 @@ local uiCorner=Instance.new("UICorner")
 uiCorner.CornerRadius=UDim.new(0,8)
 uiCorner.Parent=mainFrame
 
--- VIỀN GRADIENT
 local uiStroke=Instance.new("UIStroke")
 uiStroke.Thickness=1.5
 uiStroke.ApplyStrokeMode=Enum.ApplyStrokeMode.Border
@@ -75,19 +69,17 @@ RunService.RenderStepped:Connect(function(delta)
     end
 end)
 
--- NÚT CHỮ
 local auraButton=Instance.new("TextButton")
 auraButton.Size=UDim2.new(0,70,1,0)
 auraButton.Position=UDim2.new(0,0,0,0)
 auraButton.BackgroundTransparency=1
-auraButton.Text="Kill Aura 2"
+auraButton.Text="Kill Aura"
 auraButton.TextColor3=Color3.fromRGB(255,255,255)
-auraButton.TextSize=12
+auraButton.TextSize=14
 auraButton.Font=Enum.Font.Cartoon
 auraButton.AutoButtonColor=false
 auraButton.Parent=mainFrame
 
--- SWITCH
 local toggleFrame=Instance.new("Frame")
 toggleFrame.Size=UDim2.new(0,32,0,16)
 toggleFrame.Position=UDim2.new(1,-37,0.5,-8)
@@ -110,7 +102,6 @@ local circleCorner=Instance.new("UICorner")
 circleCorner.CornerRadius=UDim.new(1,0)
 circleCorner.Parent=toggleCircle
 
--- NÚT CLICK SWITCH
 local toggleClickBtn=Instance.new("TextButton")
 toggleClickBtn.Size=UDim2.new(1,0,1,0)
 toggleClickBtn.BackgroundTransparency=1
@@ -118,7 +109,6 @@ toggleClickBtn.Text=""
 toggleClickBtn.AutoButtonColor=false
 toggleClickBtn.Parent=toggleFrame
 
--- CẬP NHẬT SWITCH
 local function updateToggle()
     if _G.KillAuraFull then
         toggleFrame.BackgroundColor3=Color3.fromRGB(0,140,230)
@@ -129,7 +119,6 @@ local function updateToggle()
     end
 end
 
--- HÀM BẬT/TẮT
 local function toggleAura()
     _G.KillAuraFull=not _G.KillAuraFull
     updateToggle()
@@ -184,7 +173,6 @@ task.spawn(function()
     end
 end)
 
--- KÉO THẢ GUI
 local dragging=false
 local dragStart
 local startPos
@@ -212,12 +200,7 @@ UserInputService.InputChanged:Connect(function(input)
 
         local delta=input.Position-dragStart
 
-        mainFrame.Position=UDim2.new(
-            startPos.X.Scale,
-            startPos.X.Offset+delta.X,
-            startPos.Y.Scale,
-            startPos.Y.Offset+delta.Y
-        )
+        mainFrame.Position=UDim2.new(startPos.X.Scale,startPos.X.Offset+delta.X,startPos.Y.Scale,startPos.Y.Offset+delta.Y)
     end
 end)
 
@@ -229,20 +212,17 @@ local TweenService = game:GetService("TweenService")
 local CoreGui = game:GetService("CoreGui")
 local LocalPlayer = Players.LocalPlayer
 
---// AUTO ANTI AFK
 LocalPlayer.Idled:Connect(function()
     VirtualUser:Button2Down(Vector2.new(0,0),workspace.CurrentCamera.CFrame)
     task.wait(1)
     VirtualUser:Button2Up(Vector2.new(0,0),workspace.CurrentCamera.CFrame)
 end)
 
---// XÓA GUI CŨ
 pcall(function()
     local Old = CoreGui:FindFirstChild("AntiAFKNotify")
     if Old then Old:Destroy() end
 end)
 
---// GUI
 local Gui = Instance.new("ScreenGui")
 Gui.Name = "AntiAFKNotify"
 Gui.ResetOnSpawn = false
@@ -255,7 +235,6 @@ if not Gui.Parent then
     Gui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 end
 
---// CHỮ CHIA ĐÔI
 local LeftLabel = Instance.new("TextLabel",Gui)
 LeftLabel.Size = UDim2.new(0.5,0,0,100)
 LeftLabel.Position = UDim2.new(0,0,0.4,0)
@@ -278,7 +257,6 @@ RightLabel.TextSize = 24
 RightLabel.TextXAlignment = Enum.TextXAlignment.Left
 RightLabel.TextStrokeTransparency = 1
 
---// HIỆU ỨNG TRƯỢT LÊN
 local LeftIntro = TweenService:Create(LeftLabel,TweenInfo.new(0.8,Enum.EasingStyle.Quart,Enum.EasingDirection.Out),{
     Position = UDim2.new(0,0,-0.1,0)
 })
@@ -290,10 +268,8 @@ local RightIntro = TweenService:Create(RightLabel,TweenInfo.new(0.8,Enum.EasingS
 LeftIntro:Play()
 RightIntro:Play()
 
---// GIỮ 5 GIÂY SAU KHI HIỆN
 task.wait(5)
 
---// TÁCH HAI BÊN
 local LeftTween = TweenService:Create(LeftLabel,TweenInfo.new(1,Enum.EasingStyle.Quad,Enum.EasingDirection.Out),{
     Position = UDim2.new(0,-300,0,0),
     TextTransparency = 1
@@ -310,7 +286,6 @@ RightTween:Play()
 RightTween.Completed:Wait()
 Gui:Destroy()
 
--- ANIMATION 
 local Players=game:GetService("Players")
 local LocalPlayer=Players.LocalPlayer
 
