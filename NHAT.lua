@@ -13,7 +13,6 @@ _G.KillAuraFull=false
 local Range=500
 local Delay=1
 
--- XOÁ GUI CŨ
 if CoreGui:FindFirstChild(guiName) then
     CoreGui[guiName]:Destroy()
 end
@@ -36,7 +35,7 @@ end
 
 local mainFrame=Instance.new("Frame")
 mainFrame.Size=UDim2.new(0,115,0,30)
-mainFrame.Position=UDim2.new(0.5,-57,0.4,0)
+mainFrame.Position=UDim2.new(0.5,-57,0.3,0)
 mainFrame.BackgroundColor3=Color3.fromRGB(18,18,24)
 mainFrame.BorderSizePixel=0
 mainFrame.Active=true
