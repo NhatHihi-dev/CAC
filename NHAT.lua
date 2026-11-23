@@ -469,3 +469,449 @@ RunService.RenderStepped:Connect(function()
         Last=Now
     end
 end)
+
+
+local Players = game:GetService("Players")
+local CoreGui = game:GetService("CoreGui")
+local UIS = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+local plr = Players.LocalPlayer
+
+pcall(function()
+    local old = CoreGui:FindFirstChild("AimControlGui")
+    if old then old:Destroy() end
+    local old2 = plr.PlayerGui:FindFirstChild("AimControlGui")
+    if old2 then old2:Destroy() end
+end)
+
+-- Biến cục bộ
+local AimMethod = false
+local AimMonster = false
+local AimCam = false
+local CurrentCamTarget = nil
+local ABmethod = "Aim Player"
+local MousePos = Vector3.zero
+local SelectedPlayerName = nil
+
+local Gui = Instance.new("ScreenGui")
+Gui.Name = "AimControlGui"
+Gui.ResetOnSpawn = false
+Gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+pcall(function()
+    Gui.Parent = CoreGui
+end)
+if not Gui.Parent then Gui.Parent = plr:WaitForChild("PlayerGui") end
+
+local function Corner(obj, radius)
+    local c = Instance.new("UICorner")
+    c.CornerRadius = UDim.new(0, radius or 8)
+    c.Parent = obj
+end
+
+local function Stroke(obj)
+    local s = Instance.new("UIStroke")
+    s.Color = Color3.fromRGB(0, 140, 230)
+    s.Thickness = 1.5
+    s.Parent = obj
+end
+
+local function MakeButton(parent, text)
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(1, -5, 0, 30)
+    b.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+    b.TextColor3 = Color3.fromRGB(240, 240, 245)
+    b.Font = Enum.Font.Cartoon
+    b.TextSize = 11
+    b.Text = text
+    b.AutoButtonColor = true
+    b.Parent = parent
+    Corner(b, 7)
+    return b
+end
+
+-- Nút AIM ngoài màn hình để mở/đóng menu
+local ToggleMenu = Instance.new("TextButton")
+ToggleMenu.Size = UDim2.new(0, 65, 0, 30)
+ToggleMenu.Position = UDim2.new(0,0, 0.1, 0)
+ToggleMenu.BackgroundColor3 = Color3.fromRGB(18, 18, 24)
+ToggleMenu.TextColor3 = Color3.fromRGB(240, 240, 245)
+ToggleMenu.Font = Enum.Font.Cartoon
+ToggleMenu.TextSize = 11
+ToggleMenu.Text = "AIM"
+ToggleMenu.Parent = Gui
+Corner(ToggleMenu, 7)
+Stroke(ToggleMenu)
+
+-- Bảng chính (Main Frame) - Đã tăng chiều cao để chứa đủ nút Camera
+local Main = Instance.new("Frame")
+Main.Name = "Main"
+Main.Size = UDim2.new(0, 225, 0, 225)
+Main.AnchorPoint = Vector2.new(0.5, 0.5)
+Main.Position = UDim2.new(0.5, 0, 0.5, 0)
+Main.BackgroundColor3 = Color3.fromRGB(18, 18, 24)
+Main.Visible = false
+Main.Active = true
+Main.Draggable = true
+Main.Parent = Gui
+Corner(Main, 10)
+Stroke(Main)
+
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, -15, 0, 30)
+Title.Position = UDim2.new(0, 10, 0, 3)
+Title.BackgroundTransparency = 1
+Title.Text = "SILENT AIM"
+Title.TextColor3 = Color3.fromRGB(0, 170, 255)
+Title.Font = Enum.Font.Cartoon
+Title.TextSize = 13
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Parent = Main
+
+local MainScroll = Instance.new("ScrollingFrame")
+MainScroll.Position = UDim2.new(0, 5, 0, 35)
+MainScroll.Size = UDim2.new(1, -10, 1, -40)
+MainScroll.BackgroundTransparency = 1
+MainScroll.BorderSizePixel = 0
+MainScroll.ScrollBarThickness = 3
+MainScroll.ScrollBarImageColor3 = Color3.fromRGB(0, 140, 230)
+MainScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+MainScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+MainScroll.Parent = Main
+
+local MainLayout = Instance.new("UIListLayout")
+MainLayout.Padding = UDim.new(0, 6)
+MainLayout.Parent = MainScroll
+
+-- Bảng chọn người chơi (Nằm sát bên phải bảng Main)
+local PlayerPanel = Instance.new("Frame")
+PlayerPanel.Name = "PlayerPanel"
+PlayerPanel.Size = UDim2.new(0, 175, 0, 190)
+PlayerPanel.Position = UDim2.new(0, Main.Position.X.Offset + Main.Size.X.Offset + 3, Main.Position.Y.Scale, Main.Position.Y.Offset)
+PlayerPanel.BackgroundColor3 = Color3.fromRGB(18,18,24)
+PlayerPanel.Visible = false
+PlayerPanel.Active = true
+PlayerPanel.Draggable = true
+PlayerPanel.Parent = Gui
+
+Instance.new("UICorner", PlayerPanel).CornerRadius = UDim.new(0, 10)
+
+local PlayerStroke = Instance.new("UIStroke", PlayerPanel)
+PlayerStroke.Color = Color3.fromRGB(0,140,230)
+PlayerStroke.Thickness = 1.5
+
+Main:GetPropertyChangedSignal("Position"):Connect(function()
+    PlayerPanel.Position = UDim2.new(0, Main.AbsolutePosition.X + Main.AbsoluteSize.X + 3, 0, Main.AbsolutePosition.Y)
+end)
+
+local PlayerTitle = Instance.new("TextLabel")
+PlayerTitle.Size = UDim2.new(1, -10, 0, 28)
+PlayerTitle.Position = UDim2.new(0, 5, 0, 2)
+PlayerTitle.BackgroundTransparency = 1
+PlayerTitle.Text = "CHỌN TÊN NGƯỜI CHƠI"
+PlayerTitle.TextColor3 = Color3.fromRGB(0, 170, 255)
+PlayerTitle.Font = Enum.Font.Cartoon
+PlayerTitle.TextSize = 12
+PlayerTitle.Parent = PlayerPanel
+
+local PlayerScroll = Instance.new("ScrollingFrame")
+PlayerScroll.Position = UDim2.new(0, 5, 0, 32)
+PlayerScroll.Size = UDim2.new(1, -10, 1, -38)
+PlayerScroll.BackgroundTransparency = 1
+PlayerScroll.BorderSizePixel = 0
+PlayerScroll.ScrollBarThickness = 3
+PlayerScroll.ScrollBarImageColor3 = Color3.fromRGB(0, 140, 230)
+PlayerScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+PlayerScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+PlayerScroll.Parent = PlayerPanel
+
+local PlayerLayout = Instance.new("UIListLayout")
+PlayerLayout.Padding = UDim.new(0, 5)
+PlayerLayout.Parent = PlayerScroll
+
+local PlayerButtons = {}
+local UpdatePlayerList
+
+UpdatePlayerList = function()
+    pcall(function()
+        for _, v in ipairs(PlayerButtons) do
+            if v then v:Destroy() end
+        end
+        table.clear(PlayerButtons)
+
+        for _, target in ipairs(Players:GetPlayers()) do
+            if target ~= plr and target.Team ~= plr.Team then
+                local b = Instance.new("TextButton")
+                b.Size = UDim2.new(1, -5, 0, 29)
+                b.BackgroundColor3 = SelectedPlayerName == target.Name and Color3.fromRGB(0, 105, 180) or Color3.fromRGB(30, 30, 40)
+                b.TextColor3 = Color3.new(1, 1, 1)
+                b.Font = Enum.Font.Cartoon
+                b.TextSize = 11
+                b.Text = "" .. target.Name
+                b.Parent = PlayerScroll
+                Instance.new("UICorner", b).CornerRadius = UDim.new(0, 7)
+
+                b.MouseButton1Click:Connect(function()
+                    SelectedPlayerName = target.Name
+                    UpdatePlayerList()
+                end)
+
+                table.insert(PlayerButtons, b)
+            end
+        end
+    end)
+end
+
+task.spawn(function()
+    while true do
+        task.wait(1)
+        UpdatePlayerList()
+    end
+end)
+
+UpdatePlayerList()
+
+local MethodBtn = MakeButton(MainScroll, "Phương Pháp: Aim Người Chơi")
+local PlayerBtn = MakeButton(MainScroll, "Người Chơi: Không Có")
+local SkillsBtn = MakeButton(MainScroll, "Aim Người Chơi")
+local MonsterBtn = MakeButton(MainScroll, "Aim Quái")
+local CameraBtn = MakeButton(MainScroll, "AIM CAMERA: OFF")
+
+-- Hàm đồng bộ trạng thái bật/tắt của Aim Camera
+local function SetAimCamState(state)
+    AimCam = state
+    if not state then
+        CurrentCamTarget = nil
+    end
+    CameraBtn.Text = "AIM CAMERA: " .. (AimCam and "ON" or "OFF")
+    CameraBtn.BackgroundColor3 = AimCam and Color3.fromRGB(0, 110, 190) or Color3.fromRGB(30, 30, 40)
+end
+
+MethodBtn.MouseButton1Click:Connect(function()
+    ABmethod = ABmethod == "Aim Player" and "Nearest Aim" or "Aim Player"
+    MethodBtn.Text = "Phương Pháp: " .. (ABmethod == "Aim Player" and "Aim Người Chơi" or "AIM GẦN")
+end)
+
+PlayerBtn.MouseButton1Click:Connect(function()
+    PlayerPanel.Visible = not PlayerPanel.Visible
+    UpdatePlayerList()
+end)
+
+SkillsBtn.MouseButton1Click:Connect(function()
+    AimMethod = not AimMethod
+    SkillsBtn.Text = "Aim Người Chơi: " .. (AimMethod and "ON" or "OFF")
+    SkillsBtn.BackgroundColor3 = AimMethod and Color3.fromRGB(0, 110, 190) or Color3.fromRGB(30, 30, 40)
+end)
+
+MonsterBtn.MouseButton1Click:Connect(function()
+    AimMonster = not AimMonster
+    MonsterBtn.Text = "Aim Quái: " .. (AimMonster and "ON" or "OFF")
+    MonsterBtn.BackgroundColor3 = AimMonster and Color3.fromRGB(0, 110, 190) or Color3.fromRGB(30, 30, 40)
+end)
+
+CameraBtn.MouseButton1Click:Connect(function()
+    SetAimCamState(not AimCam)
+end)
+
+ToggleMenu.MouseButton1Click:Connect(function()
+    Main.Visible = not Main.Visible
+    if not Main.Visible then
+        PlayerPanel.Visible = false
+    end
+end)
+
+UIS.InputBegan:Connect(function(input, gameProcessed)
+    if not gameProcessed and input.KeyCode == Enum.KeyCode.LeftControl then
+        Gui.Enabled = not Gui.Enabled
+    end
+end)
+
+local function GetBodyPart(char)
+    if not char then return nil end
+    return char:FindFirstChild("UpperTorso") or char:FindFirstChild("Torso") or char:FindFirstChild("HumanoidRootPart")
+end
+
+local function GetNearestEnemy()
+    local enemiesFolder = workspace:FindFirstChild("Enemies")
+    if not enemiesFolder then return nil end
+    local myChar = plr.Character
+    local myRoot = myChar and myChar:FindFirstChild("HumanoidRootPart")
+    if not myRoot then return nil end
+
+    local nearestPart, minDistance = nil, math.huge
+    for _, enemy in ipairs(enemiesFolder:GetChildren()) do
+        local hum = enemy:FindFirstChildOfClass("Humanoid")
+        local targetPart = GetBodyPart(enemy)
+        if hum and hum.Health > 0 and targetPart then
+            local distance = (targetPart.Position - myRoot.Position).Magnitude
+            if distance < minDistance then
+                minDistance = distance
+                nearestPart = targetPart
+            end
+        end
+    end
+    return nearestPart
+end
+
+-- Cập nhật tọa độ thực tế liên tục
+task.spawn(function()
+    while true do
+        task.wait(0.00)
+        pcall(function()
+            if SelectedPlayerName then
+                PlayerBtn.Text = "Người Chơi: " .. SelectedPlayerName
+            else
+                PlayerBtn.Text = "Người Chơi: Không Có"
+            end
+
+            if AimMonster then
+                local monsterPart = GetNearestEnemy()
+                if monsterPart then
+                    MousePos = monsterPart.Position
+                end
+            elseif AimMethod and ABmethod == "Aim Player" then
+                local target = Players:FindFirstChild(SelectedPlayerName or "")
+                if target and target.Character and target.Team ~= plr.Team then
+                    local targetPart = GetBodyPart(target.Character)
+                    if targetPart then MousePos = targetPart.Position end
+                end
+            elseif AimMethod and ABmethod == "Nearest Aim" then
+                local myChar = plr.Character
+                local myRoot = myChar and myChar:FindFirstChild("HumanoidRootPart")
+                if myRoot then
+                    local maxDistance = math.huge
+                    
+                    for _, v in ipairs(Players:GetPlayers()) do
+                        if v ~= plr and v.Team ~= plr.Team and v.Character then
+                            local targetPart = GetBodyPart(v.Character)
+                            local hum = v.Character:FindFirstChildOfClass("Humanoid")
+                            if targetPart and hum and hum.Health > 0 then
+                                local distance = (targetPart.Position - myRoot.Position).Magnitude
+                                if distance < maxDistance then
+                                    maxDistance = distance
+                                    MousePos = targetPart.Position
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end)
+    end
+end)
+
+-- AIM CAMERA 360: Tự tắt khi mục tiêu chết
+local function IsMarine(Team)
+    if not Team then return false end
+    local Name = Team.Name:lower()
+    return Name:find("marine") ~= nil or Name:find("hải quân") ~= nil or Name:find("navy") ~= nil
+end
+
+local function IsValidCamTarget(Player)
+    if not Player or Player == plr or not Player.Character then return false end
+
+    local Humanoid = Player.Character:FindFirstChildOfClass("Humanoid")
+    local Root = Player.Character:FindFirstChild("HumanoidRootPart")
+
+    if not Humanoid or Humanoid.Health <= 0 or not Root then return false end
+
+    if IsMarine(plr.Team) then
+        if Player.Team == plr.Team then return false end
+        if not Player.Team or IsMarine(Player.Team) then return false end
+    end
+
+    return true
+end
+
+local function GetNearestCamTarget()
+    local Character = plr.Character
+    local MyRoot = Character and Character:FindFirstChild("HumanoidRootPart")
+    if not MyRoot then return nil end
+
+    local Nearest = nil
+    local MinDistance = math.huge
+
+    for _, Player in ipairs(Players:GetPlayers()) do
+        if IsValidCamTarget(Player) then
+            local Root = Player.Character:FindFirstChild("HumanoidRootPart")
+            local Distance = (Root.Position - MyRoot.Position).Magnitude
+
+            if Distance < MinDistance then
+                MinDistance = Distance
+                Nearest = Player
+            end
+        end
+    end
+
+    return Nearest
+end
+
+RunService.RenderStepped:Connect(function()
+    if not AimCam then return end
+
+    local Character = plr.Character
+    if not Character then return end
+
+    if not CurrentCamTarget then
+        CurrentCamTarget = GetNearestCamTarget()
+        if not CurrentCamTarget then
+            SetAimCamState(false)
+            return
+        end
+    end
+
+    if not IsValidCamTarget(CurrentCamTarget) then
+        SetAimCamState(false)
+        return
+    end
+
+    local TargetCharacter = CurrentCamTarget.Character
+    local Root = TargetCharacter and TargetCharacter:FindFirstChild("HumanoidRootPart")
+    if Root then
+        local Camera = workspace.CurrentCamera
+        local CameraPosition = Camera.CFrame.Position
+        Camera.CFrame = CFrame.lookAt(CameraPosition, Root.Position)
+    else
+        SetAimCamState(false)
+    end
+end)
+
+-- ========================================================
+-- METATABLE HOOK TƯƠNG THÍCH SHOOTGUN EVENT & BẢO VỆ REQUEST ENTRANCE
+-- ========================================================
+pcall(function()
+    local gg = getrawmetatable(game)
+    local old = gg.__namecall
+    setreadonly(gg, false)
+    
+    gg.__namecall = newcclosure(function(self, ...)
+        local method = getnamecallmethod()
+        local args = {...}    
+        
+        -- Chỉ can thiệp khi bật Aim Monster hoặc Aim Skills
+        if AimMonster or AimMethod then
+            if method == "FireServer" or method == "InvokeServer" then
+                
+                -- BỘ LỌC AN TOÀN: Bỏ qua requestEntrance của CommF_
+                local remoteName = tostring(self)
+                local firstArg = tostring(args[1])
+                
+                if remoteName == "CommF_" and (firstArg == "requestEntrance" or args[1] == "requestEntrance") then
+                    return old(self, unpack(args))
+                end
+
+                for i = 1, #args do
+                    if typeof(args[i]) == "Vector3" then
+                        args[i] = MousePos
+                    end
+                end
+                
+                return old(self, unpack(args))
+            end
+        end
+        
+        return old(self, ...)
+    end)
+end)
+
