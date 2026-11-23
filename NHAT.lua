@@ -384,3 +384,88 @@ LocalPlayer.CharacterAdded:Connect(SetupCharacter)
 if LocalPlayer.Character then
  SetupCharacter(LocalPlayer.Character)
 end
+
+
+local RunService=game:GetService("RunService")
+local CoreGui=game:GetService("CoreGui")
+local TweenService=game:GetService("TweenService")
+
+local Old=CoreGui:FindFirstChild("FPSMiniGui")
+if Old then Old:Destroy() end
+
+local Gui=Instance.new("ScreenGui")
+Gui.Name="FPSMiniGui"
+Gui.ResetOnSpawn=false
+Gui.IgnoreGuiInset=true
+Gui.Parent=CoreGui
+
+local Frame=Instance.new("Frame")
+Frame.Size=UDim2.new(0,60,0,25)
+Frame.Position=UDim2.new(0,0,0,0)
+Frame.BackgroundColor3=Color3.fromRGB(18,18,24)
+Frame.BorderSizePixel=0
+Frame.Parent=Gui
+
+local Corner=Instance.new("UICorner")
+Corner.CornerRadius=UDim.new(0,6)
+Corner.Parent=Frame
+
+local Label=Instance.new("TextLabel")
+Label.Size=UDim2.new(1,0,1,0)
+Label.BackgroundTransparency=1
+Label.Text="FPS: --"
+Label.TextColor3=Color3.fromRGB(80,255,100)
+Label.TextSize=11
+Label.Font=Enum.Font.GothamBold
+Label.Parent=Frame
+
+local Colors={
+    {FPS=40,Color=Color3.fromRGB(80,255,100)},
+    {FPS=30,Color=Color3.fromRGB(255,235,150)},
+    {FPS=20,Color=Color3.fromRGB(255,170,100)},
+    {FPS=10,Color=Color3.fromRGB(255,70,70)},
+    {FPS=5,Color=Color3.fromRGB(230,90,200)},
+    {FPS=0,Color=Color3.fromRGB(190,100,255)}
+}
+
+local Frames=0
+local Last=os.clock()
+local CurrentTween=nil
+
+local function GetColor(FPS)
+    for i=1,#Colors-1 do
+        local A=Colors[i]
+        local B=Colors[i+1]
+
+        if FPS<=A.FPS and FPS>=B.FPS then
+            local Alpha=(A.FPS-FPS)/(A.FPS-B.FPS)
+            return A.Color:Lerp(B.Color,Alpha)
+        end
+    end
+
+    return FPS>40 and Colors[1].Color or Colors[#Colors].Color
+end
+
+RunService.RenderStepped:Connect(function()
+    Frames+=1
+    local Now=os.clock()
+
+    if Now-Last>=1 then
+        local FPS=math.floor(Frames/(Now-Last))
+        Label.Text="FPS: "..FPS
+
+        if CurrentTween then
+            CurrentTween:Cancel()
+        end
+
+        CurrentTween=TweenService:Create(
+            Label,
+            TweenInfo.new(0.8,Enum.EasingStyle.Quad,Enum.EasingDirection.Out),
+            {TextColor3=GetColor(FPS)}
+        )
+        CurrentTween:Play()
+
+        Frames=0
+        Last=Now
+    end
+end)
